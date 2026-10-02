@@ -3,7 +3,7 @@ import pandas as pd
 from data.case14 import case14
 from network import PowerSystem
 # from powerflow import calculate_power, calculate_mismatch, run_powerflow_newton, run_PQDecoupled_powerflow
-from powerflow import NewtonRaphsonSolver, PQDecoupledSolver, PowerFlowSolver
+from powerflow import NewtonRaphsonSolver, PQDecoupledSolver, PowerFlowSolver, DLPFSolver, FDLPFSolver
 
 flat_start = True
 max_iter = 10
@@ -125,53 +125,54 @@ result = pd.DataFrame(
         "Q_inj": pq_solver.Q_calc * baseMVA
     }
 )
-
 print()
 print(result)
-# converged, iteration, Vm, Va, V_final, P_calc, Q_calc = run_PQDecoupled_powerflow(
-#         system,
-#         tol = 1e-8,
-#         max_iter = 50,
-#         )
-# if converged:
-#     print(f"Power flow converged in {iteration + 1} iterations.")
-# else:
-#     print(f"Power flow did not converge in {max_iter} iterations.") 
 
-# Va_deg = np.rad2deg(Va)
-# result = pd.DataFrame(
-#     {
-#         "BUS_I": bus["BUS_I"],
-#         "VM": Vm,
-#         "VA": Va_deg,
-#         "P_inj": P_calc * baseMVA,
-#         "Q_inj": Q_calc * baseMVA
-#     }
-# )
+dlpf_solver = DLPFSolver(system)
+dlpf_solver.solve()
 
-# print()
-# print(result)
+fdlpf_solver = FDLPFSolver(system)
+fdlpf_solver.solve()
 
+comparison = pd.DataFrame({
+    "BUS_I": bus["BUS_I"],
+    "BUS_TYPE": bus["BUS_TYPE"],
 
+    "VM_NR": nr_solver.Vm,
+    "VM_DLPF": dlpf_solver.Vm,
+    "VM_FDLPF": fdlpf_solver.Vm,
 
+    "VA_NR": np.rad2deg(
+        nr_solver.Va
+    ),
 
+    "VA_DLPF": np.rad2deg(
+        dlpf_solver.Va
+    ),
 
+    "VA_FDLPF": np.rad2deg(
+            fdlpf_solver.Va
+        )
+})
 
+comparison["VM_Error_DLPF"] = (
+    comparison["VM_DLPF"]
+    - comparison["VM_NR"]
+)
 
-# bus = pd.DataFrame(bus_data, columns=bus_columns)
+comparison["VM_Error_FDLPF"] = (
+    comparison["VM_FDLPF"]
+    - comparison["VM_NR"]
+)
 
-# print(bus)
-# print(type(bus))
+comparison["VA_Error_deg_DLPF"] = (
+    comparison["VA_DLPF"]
+    - comparison["VA_NR"]
+)
 
-# DataFrame is a 2-dimensional labeled data structure with columns of potentially different types. You can think of it like a spreadsheet or SQL table, or a dict of Series objects. It is generally the most commonly used pandas object.
-# Series is a one-dimensional labeled array capable of holding any data type (integers, strings, floating point numbers, Python objects, etc.). The axis labels are collectively referred to as the index. A Series is like a fixed-size dict in that you can get and set values by index label.
-# PD = bus["PD"]
-# print(PD)
-# print(type(PD))
+comparison["VA_Error_deg_FDLPF"] = (
+    comparison["VA_FDLPF"]
+    - comparison["VA_NR"]
+)
 
-# PD = bus["PD"].to_numpy()
-# print(PD)
-# print(type(PD))
-
-# slack_bus_id = bus.loc[bus["BUS_TYPE"] == 3, "BUS_I"].to_numpy()
-# print(slack_bus_id)
+print(comparison)

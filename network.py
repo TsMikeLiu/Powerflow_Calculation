@@ -103,7 +103,7 @@ class PowerSystem:
         return P_spec, Q_spec
 
 
-    def make_ybus(self):
+    def make_ybus(self, ignore_shift=False):
         """
         Generate the Y Bus matrix for the power system.
 
@@ -164,7 +164,10 @@ class PowerSystem:
                 tap = 1.0
 
             # Phase shift: from degree to radian
-            shift = np.deg2rad(line["SHIFT"])
+            if ignore_shift:
+                shift = 0
+            else:
+                shift = np.deg2rad(line["SHIFT"])
 
             # Complex tap ratio
             tap = tap * np.exp(1j*shift)
@@ -195,3 +198,10 @@ class PowerSystem:
 
         # print(Ybus)
         return Ybus
+
+
+
+
+
+
+    
